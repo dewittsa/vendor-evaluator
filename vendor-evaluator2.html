@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Security Evaluator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+            color: #b0b0b0;
+        }
+        
+        .search-box {
+            background: #2a2a3e;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+            border: 1px solid #3a3a4e;
+        }
+        
+        .search-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #3a3a4e;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+            background: #1a1a2e;
+            color: #ffffff;
+        }
+        
+        input[type="text"]::placeholder {
+            color: #808080;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #252538;
+        }
+        
+        button {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 18px;
+            padding: 20px;
+        }
+        
+        .results {
+            background: #2a2a3e;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 1px solid #3a3a4e;
+        }
+        
+        .results h2 {
+            color: #ffffff;
+        }
+        
+        .result-item {
+            border: 2px solid #3a3a4e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            background: #1e1e2f;
+        }
+        
+        .result-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            background: #252538;
+        }
+        
+        .company-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+        
+        .match-score {
+            display: inline-block;
+            padding: 5px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+            font-size: 0.8em;
+        }
+        
+        .security-info {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #2a3a5e;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a3a5e;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #b0b0b0;
+        }
+        
+        .info-value {
+            color: #e0e0e0;
+        }
+        
+        .status-approved {
+            color: #4ade80;
+            font-weight: bold;
+        }
+        
+        .status-review {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+        
+        .status-denied {
+            color: #f87171;
+            font-weight: bold;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #b0b0b0;
+            font-size: 18px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .status-line {
+            margin: 15px 0;
+            color: #e0e0e0;
+        }
+        
+        .notes-line {
+            margin: 15px 0;
+            color: #b0b0b0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Vendor Security Evaluator</h1>
+            <p class="subtitle">Quickly evaluate potential vendors before engagement</p>
+        </header>
+        
+        <div class="search-box">
+            <div class="search-input-group">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Enter vendor/company name (e.g., Amazon, Microsoft, Salesforce...)"
+                    onkeypress="if(event.key === 'Enter') searchVendor()"
+                >
+                <button onclick="searchVendor()" id="searchBtn">Search Vendor</button>
+            </div>
+            <div id="loading" class="loading hidden">
+                🔄 Searching and evaluating vendor...
+            </div>
+        </div>
+        
+        <div id="results" class="results hidden">
+            <h2 style="margin-bottom: 20px;">Search Results</h2>
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated vendor database (in real app, this would come from APIs)
+        const vendorDatabase = {
+            'amazon': {
+                officialName: 'Amazon Web Services, Inc.',
+                securityInfo: {
+                    'SOC 2 Certified': 'Yes',
+                    'ISO 27001': 'Yes',
+                    'GDPR Compliant': 'Yes',
+                    'Last Security Audit': '2024-01',
+                    'Data Breach History': 'None reported',
+                    'Security Rating': 'A+'
+                },
+                status: 'approved',
+                notes: 'Tier 1 vendor - Pre-approved for use'
+            },
+            'microsoft': {
+                officialName: 'Microsoft Corporation',
+                securityInfo: {
+                    'SOC 2 Certified': 'Yes',
+                    'ISO 27001': 'Yes',
+                    'GDPR Compliant': 'Yes',
+                    'Last Security Audit': '2024-02',
+                    'Data Breach History': 'None recent',
+                    'Security Rating': 'A+'
+                },
+                status: 'approved',
+                notes: 'Tier 1 vendor - Pre-approved for use'
+            },
+            'salesforce': {
+                officialName: 'Salesforce, Inc.',
+                securityInfo: {
+                    'SOC 2 Certified': 'Yes',
+                    'ISO 27001': 'Yes',
+                    'GDPR Compliant': 'Yes',
+                    'Last Security Audit': '2023-12',
+                    'Data Breach History': 'None reported',
+                    'Security Rating': 'A'
+                },
+                status: 'approved',
+                notes: 'Approved vendor - Standard procurement process'
+            },
+            'newstartup': {
+                officialName: 'NewStartup Technologies',
+                securityInfo: {
+                    'SOC 2 Certified': 'In Progress',
+                    'ISO 27001': 'No',
+                    'GDPR Compliant': 'Yes',
+                    'Last Security Audit': 'Not Available',
+                    'Data Breach History': 'None reported',
+                    'Security Rating': 'B'
+                },
+                status: 'review',
+                notes: 'Requires security review before approval'
+            },
+            'google': {
+                officialName: 'Google LLC',
+                securityInfo: {
+                    'SOC 2 Certified': 'Yes',
+                    'ISO 27001': 'Yes',
+                    'GDPR Compliant': 'Yes',
+                    'Last Security Audit': '2024-01',
+                    'Data Breach History': 'None reported',
+                    'Security Rating': 'A+'
+                },
+                status: 'approved',
+                notes: 'Tier 1 vendor - Pre-approved for use'
+            },
+            'slack': {
+                officialName: 'Slack Technologies, LLC',
+                securityInfo: {
+                    'SOC 2 Certified': 'Yes',
+                    'ISO 27001': 'Yes',
+                    'GDPR Compliant': 'Yes',
+                    'Last Security Audit': '2023-11',
+                    'Data Breach History': 'None reported',
+                    'Security Rating': 'A'
+                },
+                status: 'approved',
+                notes: 'Approved vendor - Standard procurement process'
+            }
+        };
+        
+        // String similarity function (Levenshtein distance based)
+        function calculateSimilarity(str1, str2) {
+            str1 = str1.toLowerCase();
+            str2 = str2.toLowerCase();
+            
+            const longer = str1.length > str2.length ? str1 : str2;
+            const shorter = str1.length > str2.length ? str2 : str1;
+            
+            if (longer.length === 0) return 100;
+            
+            const editDistance = levenshteinDistance(longer, shorter);
+            return ((longer.length - editDistance) / longer.length) * 100;
+        }
+        
+        function levenshteinDistance(str1, str2) {
+            const matrix = [];
+            
+            for (let i = 0; i <= str2.length; i++) {
+                matrix[i] = [i];
+            }
+            
+            for (let j = 0; j <= str1.length; j++) {
+                matrix[0][j] = j;
+            }
+            
+            for (let i = 1; i <= str2.length; i++) {
+                for (let j = 1; j <= str1.length; j++) {
+                    if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            
+            return matrix[str2.length][str1.length];
+        }
+        
+        // Search function
+        function searchVendor() {
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput.value.trim();
+            
+            if (!searchTerm) {
+                alert('Please enter a vendor name');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('searchBtn').disabled = true;
+            
+            // Simulate API delay
+            setTimeout(() => {
+                performSearch(searchTerm);
+            }, 1500);
+        }
+        
+        function performSearch(searchTerm) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '';
+            
+            // Find matching vendors (95% or better match)
+            const matches = [];
+            
+            for (const [key, vendor] of Object.entries(vendorDatabase)) {
+                const similarity = calculateSimilarity(searchTerm, key);
+                const nameSimilarity = calculateSimilarity(searchTerm, vendor.officialName);
+                const bestMatch = Math.max(similarity, nameSimilarity);
+                
+                if (bestMatch >= 95) {
+                    matches.push({
+                        key: key,
+                        vendor: vendor,
+                        matchScore: bestMatch
+                    });
+                }
+            }
+            
+            // Sort by match score
+            matches.sort((a, b) => b.matchScore - a.matchScore);
+            
+            // Display results
+            if (matches.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="no-results">
+                        <p>No vendors found matching "${searchTerm}" with 95% or better match.</p>
+                        <p style="margin-top: 10px; font-size: 14px;">This vendor may require manual security review.</p>
+                    </div>
+                `;
+            } else {
+                matches.forEach(match => {
+                    resultsContainer.appendChild(createResultCard(match));
+                });
+            }
+            
+            // Hide loading, show results
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('searchBtn').disabled = false;
+        }
+        
+        function createResultCard(match) {
+            const { vendor, matchScore } = match;
+            const card = document.createElement('div');
+            card.className = 'result-item';
+            
+            // Determine status class
+            let statusClass = 'status-review';
+            if (vendor.status === 'approved') statusClass = 'status-approved';
+            if (vendor.status === 'denied') statusClass = 'status-denied';
+            
+            // Create security info rows
+            let securityInfoHTML = '';
+            for (const [label, value] of Object.entries(vendor.securityInfo)) {
+                securityInfoHTML += `
+                    <div class="info-row">
+                        <span class="info-label">${label}:</span>
+                        <span class="info-value">${value}</span>
+                    </div>
+                `;
+            }
+            
+            card.innerHTML = `
+                <div class="company-name">
+                    ${vendor.officialName}
+                    <span class="match-score">${matchScore.toFixed(1)}% Match</span>
+                </div>
+                
+                <div class="status-line">
+                    <strong>Status:</strong> 
+                    <span class="${statusClass}">${vendor.status.toUpperCase()}</span>
+                </div>
+                
+                <div class="notes-line">
+                    <strong>Notes:</strong> ${vendor.notes}
+                </div>
+                
+                <div class="security-info">
+                    <strong style="display: block; margin-bottom: 10px; color: #ffffff;">Security Information:</strong>
+                    ${securityInfoHTML}
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        // Add some sample searches on page load
+        window.addEventListener('load', () => {
+            console.log('Vendor Security Evaluator loaded successfully');
+            console.log('Try searching for: Amazon, Microsoft, Salesforce, Google, Slack, or NewStartup');
+        });
+    </script>
+</body>
+</html>
